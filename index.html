@@ -21,6 +21,8 @@
   <canvas style="height: 50vh; width: 100vw; background-color: lightgray;"></canvas>
   <div id="erasePreview"></div>
   <div style="position: absolute; top: 0; right: 0;">
+    <button id="undo">◀</button>
+    <button id="redo">▶</button>
     <button id="erase">🔪</button>
     <button id="paint" active="true">✏</button>
   </div>
@@ -42,6 +44,10 @@
     ctx.fillStyle = 'white';
 
     ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+
+    const drawbuffers = [];
+    const redrawbuffers = [];
+    drawbuffers.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
 
     canvas.addEventListener('mousedown', evt => {
       evt.preventDefault();
@@ -69,6 +75,13 @@
         ctx.stroke();
       }
 
+      drawbuffers.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+      redrawbuffers.length = 0;
+
+      updateProcessed();
+    });
+
+    async function updateProcessed() {
       const png = canvas.toDataURL('image/png').substr(22);
 
       const resp = await fetch('http://192.168.178.44:1337/api/image-to-bpmn', {
@@ -105,7 +118,7 @@
 
       bpmnCanvas.resized();
       bpmnCanvas.zoom('fit-viewport', 'auto');
-    });
+    }
 
     document.querySelector('#clear').addEventListener('click', () => {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -123,6 +136,39 @@
       document.querySelector('#paint').setAttribute('active', false);
       document.querySelector('#erase').setAttribute('active', true);
       document.querySelector('#erasePreview').style.display = 'block';
+    });
+
+    function undo() {
+      if (drawbuffers.length > 1) {
+        redrawbuffers.push(drawbuffers.pop());
+        const latest = drawbuffers[drawbuffers.length - 1];
+
+        ctx.putImageData(latest, 0, 0);
+
+        updateProcessed();
+      }
+    }
+
+    function redo() {
+      if (redrawbuffers.length) {
+        drawbuffers.push(redrawbuffers.pop());
+        const latest = drawbuffers[drawbuffers.length - 1];
+
+        ctx.putImageData(latest, 0, 0);
+
+        updateProcessed();
+      }
+    }
+
+    document.querySelector('#undo').addEventListener('click', undo);
+    document.querySelector('#redo').addEventListener('click', redo);
+
+    document.body.addEventListener('keydown', evt => {
+      if (evt.key === 'z' && evt.ctrlKey) {
+        undo();
+      } else if (evt.key === 'y' && evt.ctrlKey) {
+        redo();
+      }
     });
   </script>
 </body>
