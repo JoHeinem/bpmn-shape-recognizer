@@ -1,6 +1,7 @@
 <body style="margin: 0;">
   <canvas style="height: 50vh; width: 100vw; background-color: lightgray;"></canvas>
   <div style="height: 50vh; width: 100vw; background-color: lightblue;"></div>
+  <div style="position: absolute; top: 50vh; height: 50vh; width: 100vw;"></div>
   <button style="background-color: gray; width: 50px; height: 20px; position: absolute; top: 0;"></button>
   <script src="frontend/bpmn-viewer.js"></script>
   <script>
@@ -50,16 +51,23 @@
       function makeElement(props, root) {
         bpmnCanvas.addShape(factory.createShape(props), root, 0);
       }
+      function makeConnection(props, root) {
+        bpmnCanvas.addConnection(factory.createConnection(props), root, 0);
+      }
 
       const root = factory.createRoot({ type: 'bpmn:Process' });
       bpmnCanvas.setRootElement(root, true);
 
-      // console.log(json);
       for (key in json) {
-        if (json[key].type === 'sequenceFlow') continue;
-        json[key].type = 'bpmn:Task';
-        makeElement(json[key], root);
+        if (json[key].type === 'bpmn:SequenceFlow') {
+          makeConnection(json[key], root);
+        } else {
+          makeElement(json[key], root);
+        }
       }
+
+      bpmnCanvas.resized();
+      bpmnCanvas.zoom('fit-viewport', 'auto');
     });
 
     document.querySelector('button').addEventListener('click', () => {
