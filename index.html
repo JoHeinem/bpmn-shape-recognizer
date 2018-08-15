@@ -8,12 +8,16 @@
     const canvas = document.querySelector('canvas');
     const ctx = canvas.getContext('2d');
     let isDrawing = false;
+    let erase = false;
 
     canvas.setAttribute('width', canvas.clientWidth);
     canvas.setAttribute('height', canvas.clientHeight);
 
     ctx.strokeStyle = 'black';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 4;
+    ctx.fillStyle = 'white';
+
+    ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
 
     canvas.addEventListener('mousedown', evt => {
       evt.preventDefault();
@@ -33,7 +37,8 @@
       isDrawing = false;
       ctx.stroke();
 
-      const png = atob(canvas.toDataURL('image/png').substr(22));
+      const png = canvas.toDataURL('image/png').substr(22);
+
       const resp = await fetch('http://192.168.178.44:1337/api/image-to-bpmn', {
         method: "POST", // *GET, POST, PUT, DELETE, etc.
         mode: "cors", // no-cors, cors, *same-origin
