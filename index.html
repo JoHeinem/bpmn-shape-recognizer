@@ -1,8 +1,32 @@
+<style>
+  button {
+    font-size: 3em;
+  }
+
+  button[active="true"] {
+    background-color: blue;
+  }
+
+  #erasePreview {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border: 1px solid gray;
+    pointer-events: none;
+    display: none;
+  }
+</style>
+
 <body style="margin: 0;">
   <canvas style="height: 50vh; width: 100vw; background-color: lightgray;"></canvas>
-  <div style="height: 50vh; width: 100vw; background-color: lightblue;"></div>
+  <div id="erasePreview"></div>
+  <div style="position: absolute; top: 0; right: 0;">
+    <button id="erase">🔪</button>
+    <button id="paint" active="true">✏</button>
+  </div>
+  <div id="bpmnjsdiv" style="height: 50vh; width: 100vw; background-color: lightblue;"></div>
   <div style="position: absolute; top: 50vh; height: 50vh; width: 100vw;"></div>
-  <button style="background-color: gray; width: 50px; height: 20px; position: absolute; top: 0;"></button>
+  <button id="clear" style="background-color: gray; width: 50px; height: 20px; position: absolute; top: 0;"></button>
   <script src="frontend/bpmn-viewer.js"></script>
   <script>
     const canvas = document.querySelector('canvas');
@@ -27,15 +51,23 @@
     });
 
     canvas.addEventListener('mousemove', evt => {
+      document.querySelector('#erasePreview').style.top = (evt.clientY - 15) + 'px';
+      document.querySelector('#erasePreview').style.left = (evt.clientX - 15) + 'px';
       if (isDrawing) {
-        ctx.lineTo(evt.clientX, evt.clientY);
-        ctx.stroke();
+        if (!erase) {
+          ctx.lineTo(evt.clientX, evt.clientY);
+          ctx.stroke();
+        } else {
+          ctx.fillRect(evt.clientX - 15, evt.clientY - 15, 30, 30);
+        }
       }
     });
 
     canvas.addEventListener('mouseup', async evt => {
       isDrawing = false;
-      ctx.stroke();
+      if (!erase) {
+        ctx.stroke();
+      }
 
       const png = canvas.toDataURL('image/png').substr(22);
 
@@ -46,9 +78,9 @@
       });
       const json = await resp.json();
 
-      document.querySelector('div').innerHTML = '';
+      document.querySelector('#bpmnjsdiv').innerHTML = '';
 
-      const viewer = new BpmnJS({ container: 'div' });
+      const viewer = new BpmnJS({ container: '#bpmnjsdiv' });
       const modeling = viewer.get('modeling');
       const factory = viewer.get('elementFactory');
       const bpmnCanvas = viewer.get('canvas');
@@ -75,9 +107,22 @@
       bpmnCanvas.zoom('fit-viewport', 'auto');
     });
 
-    document.querySelector('button').addEventListener('click', () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      document.querySelector('div').innerHTML = '';
-    })
+    document.querySelector('#clear').addEventListener('click', () => {
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      document.querySelector('#bpmnjsdiv').innerHTML = '';
+    });
+
+    document.querySelector('#paint').addEventListener('click', () => {
+      erase = false;
+      document.querySelector('#erase').setAttribute('active', false);
+      document.querySelector('#paint').setAttribute('active', true);
+      document.querySelector('#erasePreview').style.display = 'none';
+    });
+    document.querySelector('#erase').addEventListener('click', () => {
+      erase = true;
+      document.querySelector('#paint').setAttribute('active', false);
+      document.querySelector('#erase').setAttribute('active', true);
+      document.querySelector('#erasePreview').style.display = 'block';
+    });
   </script>
 </body>
