@@ -1,6 +1,6 @@
 <body style="margin: 0;">
   <canvas style="height: 50vh; width: 100vw; background-color: lightgray;"></canvas>
-  <div style="height: 50vh; width: 100vw; background-color: lightblue;" />
+  <div style="height: 50vh; width: 100vw; background-color: lightblue;"></div>
   <button style="background-color: gray; width: 50px; height: 20px; position: absolute; top: 0;"></button>
   <script src="frontend/bpmn-viewer.js"></script>
   <script>
@@ -11,13 +11,8 @@
     canvas.setAttribute('width', canvas.clientWidth);
     canvas.setAttribute('height', canvas.clientHeight);
 
-    // ctx.beginPath();
-    // ctx.moveTo(25, 25);
-    // ctx.lineTo(105, 25);
-    // ctx.lineTo(25, 105);
-    // ctx.fill();
-
     ctx.strokeStyle = 'black';
+    ctx.lineWidth = 2;
 
     canvas.addEventListener('mousedown', evt => {
       evt.preventDefault();
@@ -33,20 +28,43 @@
       }
     });
 
-    canvas.addEventListener('mouseup', evt => {
+    canvas.addEventListener('mouseup', async evt => {
       isDrawing = false;
       ctx.stroke();
 
       const png = atob(canvas.toDataURL('image/png').substr(22));
-      const resp = fetch('http://192.168.178.44:1337/api/image-to-bpmn', {
+      const resp = await fetch('http://192.168.178.44:1337/api/image-to-bpmn', {
         method: "POST", // *GET, POST, PUT, DELETE, etc.
         mode: "cors", // no-cors, cors, *same-origin
         body: png
       });
+      const json = await resp.json();
+
+      document.querySelector('div').innerHTML = '';
+
+      const viewer = new BpmnJS({ container: 'div' });
+      const modeling = viewer.get('modeling');
+      const factory = viewer.get('elementFactory');
+      const bpmnCanvas = viewer.get('canvas');
+
+      function makeElement(props, root) {
+        bpmnCanvas.addShape(factory.createShape(props), root, 0);
+      }
+
+      const root = factory.createRoot({ type: 'bpmn:Process' });
+      bpmnCanvas.setRootElement(root, true);
+
+      // console.log(json);
+      for (key in json) {
+        if (json[key].type === 'sequenceFlow') continue;
+        json[key].type = 'bpmn:Task';
+        makeElement(json[key], root);
+      }
     });
 
     document.querySelector('button').addEventListener('click', () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      document.querySelector('div').innerHTML = '';
     })
   </script>
 </body>
