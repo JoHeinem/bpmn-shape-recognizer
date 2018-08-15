@@ -49,27 +49,47 @@
     const redrawbuffers = [];
     drawbuffers.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
 
-    canvas.addEventListener('mousedown', evt => {
-      evt.preventDefault();
+
+    function start(evt) {
       isDrawing = true;
       ctx.beginPath();
-      ctx.moveTo(evt.clientX, evt.clientY);
-    });
 
-    canvas.addEventListener('mousemove', evt => {
+      const touches = evt.changedTouches;
+      if (touches) {
+        ctx.moveTo(touches[0].clientX, touches[0].clientY);
+      } else {
+        evt.preventDefault();
+        ctx.moveTo(evt.clientX, evt.clientY);
+      }
+    }
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('touchstart', start);
+
+    function move(evt) {
       document.querySelector('#erasePreview').style.top = (evt.clientY - 15) + 'px';
       document.querySelector('#erasePreview').style.left = (evt.clientX - 15) + 'px';
       if (isDrawing) {
         if (!erase) {
-          ctx.lineTo(evt.clientX, evt.clientY);
-          ctx.stroke();
+          const touches = evt.changedTouches;
+          if (touches) {
+            ctx.lineTo(touches[0].clientX, touches[0].clientY);
+          } else {
+            ctx.lineTo(evt.clientX, evt.clientY);
+          } ctx.stroke();
         } else {
-          ctx.fillRect(evt.clientX - 15, evt.clientY - 15, 30, 30);
+          const touches = evt.changedTouches;
+          if (touches) {
+            ctx.fillRect(touches[0].clientX - 15, touches[0].clientY - 15, 30, 30);
+          } else {
+            ctx.fillRect(evt.clientX - 15, evt.clientY - 15, 30, 30);
+          }
         }
       }
-    });
+    }
+    canvas.addEventListener('mousemove', move);
+    canvas.addEventListener('touchmove', move);
 
-    canvas.addEventListener('mouseup', async evt => {
+    function end(evt) {
       isDrawing = false;
       if (!erase) {
         ctx.stroke();
@@ -79,7 +99,9 @@
       redrawbuffers.length = 0;
 
       updateProcessed();
-    });
+    }
+    canvas.addEventListener('mouseup', end);
+    canvas.addEventListener('touchend', end);
 
     async function updateProcessed() {
       const png = canvas.toDataURL('image/png').substr(22);
