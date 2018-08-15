@@ -1,11 +1,23 @@
 <body style="margin: 0;">
   <canvas style="height: 50vh; width: 100vw; background-color: lightgray;"></canvas>
   <div style="height: 50vh; width: 100vw; background-color: lightblue;" />
+  <button style="background-color: gray; width: 50px; height: 20px; position: absolute; top: 0;"></button>
   <script src="frontend/bpmn-viewer.js"></script>
   <script>
     const canvas = document.querySelector('canvas');
     const ctx = canvas.getContext('2d');
     let isDrawing = false;
+
+    canvas.setAttribute('width', canvas.clientWidth);
+    canvas.setAttribute('height', canvas.clientHeight);
+
+    // ctx.beginPath();
+    // ctx.moveTo(25, 25);
+    // ctx.lineTo(105, 25);
+    // ctx.lineTo(25, 105);
+    // ctx.fill();
+
+    ctx.strokeStyle = 'black';
 
     canvas.addEventListener('mousedown', evt => {
       evt.preventDefault();
@@ -16,19 +28,25 @@
 
     canvas.addEventListener('mousemove', evt => {
       if (isDrawing) {
-        console.log('evt', evt);
         ctx.lineTo(evt.clientX, evt.clientY);
+        ctx.stroke();
       }
     });
 
     canvas.addEventListener('mouseup', evt => {
       isDrawing = false;
+      ctx.stroke();
+
+      const png = atob(canvas.toDataURL('image/png').substr(22));
+      const resp = fetch('http://192.168.178.44:1337/api/image-to-bpmn', {
+        method: "POST", // *GET, POST, PUT, DELETE, etc.
+        mode: "cors", // no-cors, cors, *same-origin
+        body: png
+      });
     });
 
-    console.log(BpmnJS);
-    const resp = fetch('http://192.168.178.44:1337/api/image-to-bpmn', {
-      method: "POST", // *GET, POST, PUT, DELETE, etc.
-      mode: "cors", // no-cors, cors, *same-origin
-    });
+    document.querySelector('button').addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    })
   </script>
 </body>
