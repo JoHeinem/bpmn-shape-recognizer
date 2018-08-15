@@ -7,7 +7,7 @@ import numpy as np
 import pkg_resources
 
 # import the necessary packages
-from pyimagesearch.shapedetector import ShapeDetector
+from backend.pyimagesearch.shapedetector_backup import ShapeDetector
 
 # construct the argument parse and parse the arguments
 image_filename = pkg_resources.resource_filename('resources', 'hand_drawn_bpmn_shapes.png')
@@ -16,10 +16,10 @@ output_filename = pkg_resources.resource_filename('resources', 'output.png')
 
 # image_filename = pkg_resources.resource_filename('resources', 'shapes_and_colors.png')
 # image_filename = pkg_resources.resource_filename('resources', 'test.png')
+image_filename = pkg_resources.resource_filename('resources', 'foo.png')
 
 # To execute the script, do:
-# original_image = cv2.imread(image_filename, )
-# detect_shapes(original_image)
+
 
 
 
@@ -82,3 +82,8 @@ def detect_shapes(original_image):
     # cv2.imshow("Image", original_image)
 
   cv2.imwrite(output_filename, original_image)
+  cv2.imshow("image", original_image)
+  cv2.waitKey(0)
+
+# original_image = cv2.imread(image_filename, )
+# detect_shapes(original_image)
