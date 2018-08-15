@@ -1,0 +1,34 @@
+<body style="margin: 0;">
+  <canvas style="height: 50vh; width: 100vw; background-color: lightgray;"></canvas>
+  <div style="height: 50vh; width: 100vw; background-color: lightblue;" />
+  <script src="frontend/bpmn-viewer.js"></script>
+  <script>
+    const canvas = document.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+
+    canvas.addEventListener('mousedown', evt => {
+      evt.preventDefault();
+      isDrawing = true;
+      ctx.beginPath();
+      ctx.moveTo(evt.clientX, evt.clientY);
+    });
+
+    canvas.addEventListener('mousemove', evt => {
+      if (isDrawing) {
+        console.log('evt', evt);
+        ctx.lineTo(evt.clientX, evt.clientY);
+      }
+    });
+
+    canvas.addEventListener('mouseup', evt => {
+      isDrawing = false;
+    });
+
+    console.log(BpmnJS);
+    const resp = fetch('http://192.168.178.44:1337/api/image-to-bpmn', {
+      method: "POST", // *GET, POST, PUT, DELETE, etc.
+      mode: "cors", // no-cors, cors, *same-origin
+    });
+  </script>
+</body>
