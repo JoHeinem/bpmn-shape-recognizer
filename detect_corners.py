@@ -11,8 +11,8 @@ import numpy as np
 image_filename = pkg_resources.resource_filename('resources', 'hand_drawn_bpmn_shapes.png')
 # image_filename = pkg_resources.resource_filename('resources', 'simple_draw.png')
 # image_filename = pkg_resources.resource_filename('resources', 'test.png')
-image_filename = pkg_resources.resource_filename('resources', 'foo.png')
-image_filename = pkg_resources.resource_filename('resources', 'open_rectangle.png')
+# image_filename = pkg_resources.resource_filename('resources', 'foo.png')
+# image_filename = pkg_resources.resource_filename('resources', 'open_rectangle.png')
 
 
 

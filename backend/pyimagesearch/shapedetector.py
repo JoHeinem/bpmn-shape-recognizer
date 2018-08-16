@@ -66,7 +66,7 @@ class ShapeDetector:
         p1 = np.array([corner_indexes[0][lower_right_ith], corner_indexes[1][lower_right_ith]])
         should_add = True
         for p2 in result:
-            if self.calc_dist(p2, p1) < 15:
+            if self.calc_dist(p2, p1) < 3:
                 should_add = False
 
         if should_add:
@@ -97,60 +97,157 @@ class ShapeDetector:
 
 
   def detect_rectangles(self, image):
-    image = self.connect_gaps(image)
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    gray = cv2.bilateralFilter(gray, 11, 17, 17)
-    edged = cv2.Canny(gray, 30, 200)
+    gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
 
-    # cv2.imshow('foo', edged)
-    # cv2.waitKey(0)
+    gray = np.float32(gray)
+    dst = cv2.cornerHarris(gray,2,5,0.04)
 
-    # find contours in the edged image, keep only the largest
-    # ones, and initialize our screen contour
+    # cv2.imshow("Gray", gray)
 
-    cnts = cv2.findContours(edged.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    cnts = cnts[0] if imutils.is_cv2() else cnts[1]
-    screenCnt = None
+    #result is dilated for marking the corners, not important
+    dst = cv2.dilate(dst,None)
 
-    rectangles = {}
-    center_points = []
-    # loop over our contours
-    for c in cnts:
-      # approximate the contour
-      peri = cv2.arcLength(c, True)
-      approx = cv2.approxPolyDP(c, 0.02 * peri, True)
-
-      # if our approximated contour has four points, then
-      # we can assume that we have found our screen
-      (x, y, w, h) = cv2.boundingRect(approx)
-      ar = w / float(h)
-      rect_area = w * float(h)
-      area = cv2.contourArea(c)
-      # shape = "arrow" if area < rect_area / 2 else shape
-
-      if len(approx) == 4 and area > rect_area / 3:
-
-        # assumption the x coordinates of the first and third point
-        # and the y coordinates for the second and forth point are the same
-        # for a diamond shape.
-        # x = approx[0][0][0]
-        # y = approx[0][0][1]
-
-        cx = int(x + w/2)
-        cy = int(y + h/2)
-        new_center_point = [cx, cy]
+    corner_indexes = np.where(dst>0.01*dst.max())
+    result = np.array([[corner_indexes[0][0], corner_indexes[1][0]]])
+    for ith_corner in range(len(corner_indexes[0])):
+        p1 = np.array([corner_indexes[0][ith_corner], corner_indexes[1][ith_corner]])
         should_add = True
-        for center_point in center_points:
-          dist = self.calc_dist(new_center_point, center_point)
-          if dist < 15:
+        if gray[p1[0], p1[1]] == 255:
             should_add = False
+        else:
+            for p2 in result:
+                if self.calc_dist(p2, p1) < 30:
+                    should_add = False
 
         if should_add:
-          center_points.append([cx, cy])
-          id = 'task_' + IdGenerator.next()
-          x = x.item()
-          y = y.item()
-          rectangles[id] = {'type': 'bpmn:Task', 'x': x, 'y': y, 'width': w, 'height': h}
+            result = np.vstack((result, p1))
+
+    result_copy = []
+    for r in result:
+        result_copy.append(r)
+
+    center_points = []
+    rectangles = {}
+    while(np.size(result) != 0):
+        upper_left_corner_idx = np.argmin(np.sum(result, axis=1))
+        upper_left_corner_point = result[upper_left_corner_idx]
+
+        # the corner point is not directly on the edge
+        if gray[upper_left_corner_point[0]+1, upper_left_corner_point[1]] != 0:
+            upper_left_corner_point = [upper_left_corner_point[0], upper_left_corner_point[1]+1]
+
+        idx_to_remove = [upper_left_corner_idx]
+
+        can_continue = True
+        next_point = upper_left_corner_point
+        max_right = 10
+        while can_continue:
+            left_down = gray[next_point[0]+1, next_point[1]-1]
+            down = gray[next_point[0]+1, next_point[1]]
+            right_down = gray[next_point[0]+1, next_point[1]+1]
+            right = gray[next_point[0], next_point[1]+1]
+            if down == 0:
+                next_point = [next_point[0]+1, next_point[1]]
+            elif right_down == 0:
+                next_point = [next_point[0]+1, next_point[1]+1]
+            elif left_down == 0:
+                next_point = [next_point[0]+1, next_point[1]-1]
+            elif right == 0 and max_right>0:
+                max_right -= 1
+                next_point = [next_point[0], next_point[1]+1]
+            else:
+              can_continue = False
+
+        # TODO: calc dist
+        can_continue = True
+        lower_left_corner = next_point
+        max_up = 10
+        while can_continue:
+            right_up = gray[next_point[0]-1, next_point[1]+1]
+            right = gray[next_point[0], next_point[1]+1]
+            right_down = gray[next_point[0]+1, next_point[1]+1]
+            up = gray[next_point[0]-1, next_point[1]]
+            if right == 0:
+                next_point = [next_point[0], next_point[1]+1]
+            elif right_up == 0:
+                next_point = [next_point[0]-1, next_point[1]+1]
+            elif right_down == 0:
+                next_point = [next_point[0]+1, next_point[1]+1]
+            elif up == 0 and max_up > 0:
+                max_up -= 1
+                next_point = [next_point[0]-1, next_point[1]]
+            else:
+              can_continue = False
+        # TODO: calc dist
+        can_continue = True
+        lower_right_corner = next_point
+        max_left = 10
+        while can_continue:
+            left_up = gray[next_point[0]-1, next_point[1]-1]
+            up = gray[next_point[0]-1, next_point[1]]
+            right_up = gray[next_point[0]-1, next_point[1]+1]
+            left = gray[next_point[0], next_point[1]-1]
+            if up == 0:
+                next_point = [next_point[0]-1, next_point[1]]
+            elif left_up == 0:
+                next_point = [next_point[0]-1, next_point[1]-1]
+            elif right_up == 0:
+                next_point = [next_point[0]-1, next_point[1]+1]
+            elif left == 0 and max_left>0:
+                max_left -= 1
+                next_point = [next_point[0], next_point[1]-1]
+            else:
+              can_continue = False
+
+        can_continue = True
+        upper_right_corner = next_point
+        while can_continue:
+            left_up = gray[next_point[0]-1, next_point[1]-1]
+            left = gray[next_point[0], next_point[1]-1]
+            left_down = gray[next_point[0]+1, next_point[1]-1]
+            if left == 0:
+                next_point = [next_point[0], next_point[1]-1]
+            elif left_down == 0:
+                next_point = [next_point[0]+1, next_point[1]-1]
+            elif left_up == 0:
+                next_point = [next_point[0]-1, next_point[1]-1]
+            else:
+              can_continue = False
+
+        dist = self.calc_dist(upper_left_corner_point, next_point)
+        dist_left = self.calc_dist(upper_left_corner_point, lower_left_corner)
+        dist_bottom = self.calc_dist(lower_right_corner, lower_left_corner)
+        dist_right = self.calc_dist(lower_right_corner, upper_right_corner)
+        if dist < 40 and dist_left > 40 and dist_bottom > 40 and dist_right > 40:
+            x1 = upper_left_corner_point[0]
+            x2 = upper_right_corner[0]
+            y1 = upper_left_corner_point[1]
+            y2 = lower_left_corner[1]
+            x = int((x1+x2)/2)
+            y = int((y1+y2)/2)
+            w = int((upper_right_corner[1]+lower_right_corner)[1]/2) - y
+            h = int((lower_left_corner[0]+lower_right_corner[0]) /2)- x
+            cv2.rectangle(image, (y , x), (y+w, x+h ), (0, 255, 0), 3)
+
+            cx = int(x + w/2)
+            cy = int(y + h/2)
+            new_center_point = [cx, cy]
+            should_add = True
+            for center_point in center_points:
+              dist = self.calc_dist(new_center_point, center_point)
+              if dist < 15:
+                should_add = False
+
+            if should_add:
+              center_points.append([cx, cy])
+              id = 'task_' + IdGenerator.next()
+              x = x
+              y = y
+              rectangles[id] = {'type': 'bpmn:Task', 'x': y, 'y': x, 'width': w, 'height': h}
+
+        to_choose = [x for x in range(result.shape[0]) if x not in idx_to_remove]
+        result = result[to_choose, :]
+
     return rectangles
 
   def detect_seqflows(self, original_image, elems):
@@ -201,8 +298,23 @@ class ShapeDetector:
           peri = cv2.arcLength(c, True)
           approx = cv2.approxPolyDP(c, 0.04 * peri, True)
 
-          from_id = self.find_closest(approx[0][0], elems)
-          to_id = self.find_closest(approx[len(approx)-1][0], elems)
+          # find most left
+          most_left_idx = 0
+          for ith in range(len(approx)):
+            curr_x = approx[ith][0][0]
+            most_x = approx[most_left_idx][0][0]
+            if curr_x < most_x:
+              most_left_idx = ith
+
+          most_right_idx = 0
+          for ith in range(len(approx)):
+            curr_x = approx[ith][0][0]
+            most_x = approx[most_right_idx][0][0]
+            if curr_x > most_x:
+              most_right_idx = ith
+
+          from_id = self.find_closest(approx[most_left_idx][0], elems)
+          to_id = self.find_closest(approx[most_right_idx][0], elems)
           waypoints = []
           for ith in range(len(approx)):
             ith_elem = approx[ith][0]
@@ -211,6 +323,34 @@ class ShapeDetector:
               'y': ith_elem[1].item()
             }
             waypoints.append(waypoint)
+          waypoints = sorted(waypoints, key=lambda k: k['x'])
+
+          seq_dist = self.calc_dist([waypoints[0]['x'], waypoints[0]['y']], [waypoints[len(waypoints)-1]['x'], waypoints[len(waypoints)-1]['y']])
+          if seq_dist < 50:
+            break
+
+          # remove waypoints close to target
+          to_remove = []
+          last_waypoint = [waypoints[len(waypoints)-1]['x'], waypoints[len(waypoints)-1]['y']]
+          for ith in range(1, len(waypoints)-1):
+            curr_waypoint_x = waypoints[ith]['x']
+            curr_waypoint_y = waypoints[ith]['y']
+            dist = self.calc_dist([curr_waypoint_x, curr_waypoint_y], last_waypoint)
+            if dist<40:
+              to_remove.append(ith)
+
+          to_choose = [x for x in range(len(waypoints)) if x not in to_remove]
+          waypoints = [waypoints[i] for i in to_choose]
+
+          if from_id is not None:
+            from_elem = elems[from_id]
+            waypoints[0]['x'] = from_elem['x'] + from_elem['width']
+            waypoints[0]['y'] = from_elem['y'] + from_elem['height']/2
+
+          if to_id is not None:
+            to_elem = elems[to_id]
+            waypoints[len(waypoints)-1]['x'] = to_elem['x']
+            waypoints[len(waypoints)-1]['y'] = to_elem['y'] + to_elem['height']/2
 
           id = 'seqflow_' + IdGenerator.next()
           seq_flows[id] = {'type': 'bpmn:SequenceFlow',
@@ -221,7 +361,7 @@ class ShapeDetector:
 
   def find_closest(self, point, elems):
     closest_id = ''
-    dist = 1000000000000
+    dist = 100
     for key, elem in elems.items():
       cx = elem['x'] + elem['width']/2
       cy = elem['y'] + elem['height']/2

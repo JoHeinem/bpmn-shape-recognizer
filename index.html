@@ -107,7 +107,7 @@
     async function updateProcessed() {
       const png = canvas.toDataURL('image/png').substr(22);
 
-      const resp = await fetch('http://192.168.97.57:1337/api/image-to-bpmn', {
+      const resp = await fetch('http://localhost:1337/api/image-to-bpmn', {
         method: "POST", // *GET, POST, PUT, DELETE, etc.
         mode: "cors", // no-cors, cors, *same-origin
         body: png

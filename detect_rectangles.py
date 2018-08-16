@@ -10,10 +10,12 @@ import math
 
 # construct the argument parse and parse the arguments
 image_filename = pkg_resources.resource_filename('resources', 'hand_drawn_bpmn_shapes.png')
-image_filename = pkg_resources.resource_filename('resources', 'shapes_and_colors.png')
+# image_filename = pkg_resources.resource_filename('resources', 'shapes_and_colors.png')
 # image_filename = pkg_resources.resource_filename('resources', 'open_rectangle.png')
+image_filename = pkg_resources.resource_filename('resources', 'foo.png')
 # image_filename = pkg_resources.resource_filename('resources', 'foo.png')
-image_filename = pkg_resources.resource_filename('resources', 'original.png')
+# image_filename = pkg_resources.resource_filename('resources', 'original.png')
+image_filename = pkg_resources.resource_filename('resources', 'rectwitharrow.png')
 
 def calc_dist(p2, p1):
       return math.sqrt((p2[1] - p1[1]) ** 2 + (p2[0] - p1[0]) ** 2)
@@ -78,7 +80,7 @@ gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 gray = cv2.bilateralFilter(gray, 11, 17, 17)
 edged = cv2.Canny(gray, 30, 200)
 
-cv2.imshow("Canny", edged)
+# cv2.imshow("Canny", edged)
 
 # find contours in the edged image, keep only the largest
 # ones, and initialize our screen contour
@@ -93,6 +95,7 @@ for c in cnts:
   # approximate the contour
   peri = cv2.arcLength(c, True)
   approx = cv2.approxPolyDP(c, 0.04 * peri, True)
+  cv2.drawContours(image, [approx], -1, (0, 255, 0), 3)
 
   # if our approximated contour has four points, then
   # we can assume that we have found our screen
@@ -102,7 +105,7 @@ for c in cnts:
   area = cv2.contourArea(c)
   # shape = "arrow" if area < rect_area / 2 else shape
 
-  if len(approx) == 4:
+  if len(approx) == 4 and area > rect_area / 3:
 
     # assumption the x coordinates of the first and third point
     # and the y coordinates for the second and forth point are the same
@@ -117,7 +120,6 @@ for c in cnts:
     cx = int(x + w/2)
     cy = int(y + h/2)
     new_center_point = [cx, cy]
-
     should_add = True
     for center_point in center_points:
       dist = calc_dist(new_center_point, center_point)
