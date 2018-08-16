@@ -1,0 +1,302 @@
+<style>
+  img {
+    opacity: 0.2;
+    pointer-events: none;
+  }
+
+  svg {
+    pointer-events: none;
+  }
+</style>
+
+<body style="margin: 0">
+  <video autoplay style="position: absolute; width: 100vw; height: 100vh;"></video>
+  <canvas style="display: none"></canvas>
+  <div id="bpmnjsdiv" style="position: absolute; height: 100vh; width: 100vw;"></div>
+
+  <script src="frontend/bpmn-viewer.js"></script>
+  <script>
+    let stop = false;
+    const constraints = {
+      video: true
+    };
+
+    const video = document.querySelector('video');
+    const canvas = document.querySelector('canvas');
+
+    // navigator.mediaDevices.getUserMedia(constraints).
+    //   then((stream) => { video.srcObject = stream });
+
+    async function doit() {
+      if (stop) return;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+
+      const png = canvas.toDataURL('image/png').substr(22);
+
+      const resp = await fetch('http://192.168.97.57:1337/api/image-to-bpmn', {
+        method: "POST", // *GET, POST, PUT, DELETE, etc.
+        mode: "cors", // no-cors, cors, *same-origin
+        body: png
+      });
+      window.setTimeout(doit, 2000);
+      const json = await resp.json();
+
+      document.querySelector('#bpmnjsdiv').innerHTML = '';
+
+      const viewer = new BpmnJS({ container: '#bpmnjsdiv' });
+      const modeling = viewer.get('modeling');
+      const factory = viewer.get('elementFactory');
+      const bpmnCanvas = viewer.get('canvas');
+
+      function makeElement(props, root) {
+        bpmnCanvas.addShape(factory.createShape(props), root, 0);
+      }
+      function makeConnection(props, root) {
+        bpmnCanvas.addConnection(factory.createConnection(props), root, 0);
+      }
+
+      const root = factory.createRoot({ type: 'bpmn:Process' });
+      bpmnCanvas.setRootElement(root, true);
+
+      for (key in json) {
+        if (json[key].type === 'bpmn:SequenceFlow') {
+          makeConnection(json[key], root);
+        } else {
+          makeElement(json[key], root);
+        }
+      }
+
+    }
+    // window.setTimeout(doit, 2000);
+
+    document.querySelector('#bpmnjsdiv').addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.setAttribute('type', 'file');
+      input.click();
+
+      input.addEventListener('change', evt => {
+        if (!stop) {
+          stop = true;
+          document.body.removeChild(video);
+        }
+        else {
+          document.body.removeChild(document.querySelector('.deletePls'));
+        }
+        const file = evt.path[0].files[0];
+
+        const reader = new FileReader();
+        reader.addEventListener('load', async e => {
+          const fileContent = e.target.result;
+          // console.log(fileContent);
+
+          const img = new Image();
+          img.src = fileContent;
+          img.classList.add('deletePls');
+          document.body.appendChild(img);
+
+          console.log('appended img', img);
+
+          const png = fileContent.substr(22);
+          const resp = await fetch('http://192.168.97.57:1337/api/image-to-bpmn', {
+            method: "POST", // *GET, POST, PUT, DELETE, etc.
+            mode: "cors", // no-cors, cors, *same-origin
+            body: png
+          });
+          const json = await resp.json();
+
+          document.querySelector('#bpmnjsdiv').innerHTML = '';
+
+          const viewer = new BpmnJS({ container: '#bpmnjsdiv' });
+          const modeling = viewer.get('modeling');
+          const factory = viewer.get('elementFactory');
+          const bpmnCanvas = viewer.get('canvas');
+
+          function makeElement(props, root) {
+            bpmnCanvas.addShape(factory.createShape(props), root, 0);
+          }
+          function makeConnection(props, root) {
+            bpmnCanvas.addConnection(factory.createConnection(props), root, 0);
+          }
+
+          const root = factory.createRoot({ type: 'bpmn:Process' });
+          bpmnCanvas.setRootElement(root, true);
+
+          for (key in json) {
+            if (json[key].type === 'bpmn:SequenceFlow') {
+              makeConnection(json[key], root);
+            } else {
+              makeElement(json[key], root);
+            }
+          }
+        });
+        reader.readAsDataURL(file);
+      });
+
+
+    });
+
+// const canvas = document.querySelector('canvas');
+//     const ctx = canvas.getContext('2d');
+//     let isDrawing = false;
+//     let erase = false;
+
+//     canvas.setAttribute('width', canvas.clientWidth);
+//     canvas.setAttribute('height', canvas.clientHeight);
+
+//     ctx.strokeStyle = 'black';
+//     ctx.lineWidth = 4;
+//     ctx.fillStyle = 'white';
+
+//     ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+
+//     const drawbuffers = [];
+//     const redrawbuffers = [];
+//     drawbuffers.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+
+
+//     function start(evt) {
+//       isDrawing = true;
+//       ctx.beginPath();
+//       evt.preventDefault();
+//       const touches = evt.changedTouches;
+//       if (touches) {
+//         ctx.moveTo(touches[0].clientX, touches[0].clientY);
+//       } else {
+//         evt.preventDefault();
+//         ctx.moveTo(evt.clientX, evt.clientY);
+//       }
+//     }
+//     canvas.addEventListener('mousedown', start);
+//     canvas.addEventListener('touchstart', start);
+
+//     function move(evt) {
+//       document.querySelector('#erasePreview').style.top = (evt.clientY - 15) + 'px';
+//       document.querySelector('#erasePreview').style.left = (evt.clientX - 15) + 'px';
+//       if (isDrawing) {
+//         if (!erase) {
+//           const touches = evt.changedTouches;
+//           if (touches) {
+//             ctx.lineTo(touches[0].clientX, touches[0].clientY);
+//           } else {
+//             ctx.lineTo(evt.clientX, evt.clientY);
+//           } ctx.stroke();
+//         } else {
+//           const touches = evt.changedTouches;
+//           if (touches) {
+//             ctx.fillRect(touches[0].clientX - 15, touches[0].clientY - 15, 30, 30);
+//           } else {
+//             ctx.fillRect(evt.clientX - 15, evt.clientY - 15, 30, 30);
+//           }
+//         }
+//       }
+//     }
+//     canvas.addEventListener('mousemove', move);
+//     canvas.addEventListener('touchmove', move);
+
+//     function end(evt) {
+//       isDrawing = false;
+//       if (!erase) {
+//         ctx.stroke();
+//       }
+
+//       drawbuffers.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+//       redrawbuffers.length = 0;
+
+//       updateProcessed();
+//     }
+//     canvas.addEventListener('mouseup', end);
+//     canvas.addEventListener('touchend', end);
+
+//     async function updateProcessed() {
+//       const png = canvas.toDataURL('image/png').substr(22);
+
+//       const resp = await fetch('http://192.168.97.57:1337/api/image-to-bpmn', {
+//         method: "POST", // *GET, POST, PUT, DELETE, etc.
+//         mode: "cors", // no-cors, cors, *same-origin
+//         body: png
+//       });
+//       const json = await resp.json();
+
+//       document.querySelector('#bpmnjsdiv').innerHTML = '';
+
+//       const viewer = new BpmnJS({ container: '#bpmnjsdiv' });
+//       const modeling = viewer.get('modeling');
+//       const factory = viewer.get('elementFactory');
+//       const bpmnCanvas = viewer.get('canvas');
+
+//       function makeElement(props, root) {
+//         bpmnCanvas.addShape(factory.createShape(props), root, 0);
+//       }
+//       function makeConnection(props, root) {
+//         bpmnCanvas.addConnection(factory.createConnection(props), root, 0);
+//       }
+
+//       const root = factory.createRoot({ type: 'bpmn:Process' });
+//       bpmnCanvas.setRootElement(root, true);
+
+//       for (key in json) {
+//         if (json[key].type === 'bpmn:SequenceFlow') {
+//           makeConnection(json[key], root);
+//         } else {
+//           makeElement(json[key], root);
+//         }
+//       }
+
+//       bpmnCanvas.resized();
+//       bpmnCanvas.zoom('fit-viewport', 'auto');
+//     }
+
+//     document.querySelector('#clear').addEventListener('click', () => {
+//       ctx.fillRect(0, 0, canvas.width, canvas.height);
+//       document.querySelector('#bpmnjsdiv').innerHTML = '';
+//     });
+
+//     document.querySelector('#paint').addEventListener('click', () => {
+//       erase = false;
+//       document.querySelector('#erase').setAttribute('active', false);
+//       document.querySelector('#paint').setAttribute('active', true);
+//       document.querySelector('#erasePreview').style.display = 'none';
+//     });
+//     document.querySelector('#erase').addEventListener('click', () => {
+//       erase = true;
+//       document.querySelector('#paint').setAttribute('active', false);
+//       document.querySelector('#erase').setAttribute('active', true);
+//       document.querySelector('#erasePreview').style.display = 'block';
+//     });
+
+//     function undo() {
+//       if (drawbuffers.length > 1) {
+//         redrawbuffers.push(drawbuffers.pop());
+//         const latest = drawbuffers[drawbuffers.length - 1];
+
+//         ctx.putImageData(latest, 0, 0);
+
+//         updateProcessed();
+//       }
+//     }
+
+//     function redo() {
+//       if (redrawbuffers.length) {
+//         drawbuffers.push(redrawbuffers.pop());
+//         const latest = drawbuffers[drawbuffers.length - 1];
+
+//         ctx.putImageData(latest, 0, 0);
+
+//         updateProcessed();
+//       }
+//     }
+
+//     document.querySelector('#undo').addEventListener('click', undo);
+//     document.querySelector('#redo').addEventListener('click', redo);
+
+//     document.body.addEventListener('keydown', evt => {
+//       if (evt.key === 'z' && evt.ctrlKey) {
+//         undo();
+//       } else if (evt.key === 'y' && evt.ctrlKey) {
+//         redo();
+//       }
+//     });
+  </script>
+</body>
