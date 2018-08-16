@@ -43,17 +43,67 @@ class ShapeDetector:
 
         id = 'event_' + IdGenerator.next()
         r = r.item() # convert to python
-        x = x.item()
-        y = y.item()
+        x = x.item() - r
+        y = y.item() - r
         result_circles[id] = {'type': 'bpmn:StartEvent', 'x': x, 'y': y, 'width': 2*r, 'height': 2*r}
 
 
     return result_circles
 
+  def connect_gaps(self, image):
+
+    gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+
+    gray = np.float32(gray)
+    dst = cv2.cornerHarris(gray,2,5,0.04)
+
+    #result is dilated for marking the corners, not important
+    dst = cv2.dilate(dst,None)
+
+    corner_indexes = np.where(dst>0.01*dst.max())
+    result = np.array([[corner_indexes[0][0], corner_indexes[1][0]]])
+    for lower_right_ith in range(len(corner_indexes[0])):
+        p1 = np.array([corner_indexes[0][lower_right_ith], corner_indexes[1][lower_right_ith]])
+        should_add = True
+        for p2 in result:
+            if self.calc_dist(p2, p1) < 15:
+                should_add = False
+
+        if should_add:
+            result = np.vstack((result, p1))
+
+    for ith_corner in range(result.shape[0]):
+        corner = result[ith_corner]
+        sum =0
+        # TODO: check that is not at corner of image
+        sum += gray[corner[0]-1, corner[1]-1]
+        sum += gray[corner[0], corner[1]-1]
+        sum += gray[corner[0]+1, corner[1]-1]
+        sum += gray[corner[0]-1, corner[1]]
+        # sum += gray[corner[0], corner[1]]
+        sum += gray[corner[0]+1, corner[1]]
+        sum += gray[corner[0]-1, corner[1]+1]
+        sum += gray[corner[0], corner[1]+1]
+        sum += gray[corner[0]+1, corner[1]+1]
+
+        for ith_point in [x for x in range(result.shape[0]) if x != ith_corner]:
+            point = result[ith_point]
+            dist = self.calc_dist(corner, point)
+            if dist < 20:
+                lineThickness = 2
+                cv2.line(image, (corner[1], corner[0]), (point[1], point[0]), (0,0,0), lineThickness)
+                break
+    return image
+
+
   def detect_rectangles(self, image):
+    image = self.connect_gaps(image)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     gray = cv2.bilateralFilter(gray, 11, 17, 17)
     edged = cv2.Canny(gray, 30, 200)
+
+    # cv2.imshow('foo', edged)
+    # cv2.waitKey(0)
 
     # find contours in the edged image, keep only the largest
     # ones, and initialize our screen contour
@@ -63,11 +113,12 @@ class ShapeDetector:
     screenCnt = None
 
     rectangles = {}
+    center_points = []
     # loop over our contours
     for c in cnts:
       # approximate the contour
       peri = cv2.arcLength(c, True)
-      approx = cv2.approxPolyDP(c, 0.03 * peri, True)
+      approx = cv2.approxPolyDP(c, 0.02 * peri, True)
 
       # if our approximated contour has four points, then
       # we can assume that we have found our screen
@@ -77,42 +128,29 @@ class ShapeDetector:
       area = cv2.contourArea(c)
       # shape = "arrow" if area < rect_area / 2 else shape
 
-      # merge points that are to close to each other
-      to_remove = []
-      foo = np.array([])
-      print('array lenght: ' + str(len(approx)))
-      for ith in range(len(approx)):
-        point = approx[ith]
-        should_add = True
-        # get copy without ith element
-        for p in approx:
-          dist = self.calc_dist(point[0], p[0])
-          if dist > 0.1 and dist < 10:
-            should_add = False
-
-        if should_add:
-          print("Jaaa")
-          np.append(foo, point)
-
-      print('foo length: ' + str(len(foo)))
-      # approx = foo
       if len(approx) == 4 and area > rect_area / 3:
 
         # assumption the x coordinates of the first and third point
         # and the y coordinates for the second and forth point are the same
         # for a diamond shape.
-        x = approx[0][0][0]
-        y = approx[0][0][1]
+        # x = approx[0][0][0]
+        # y = approx[0][0][1]
 
-        cv2.drawContours(image, [approx], -1, (0, 255, 0), 3)
         cx = int(x + w/2)
         cy = int(y + h/2)
-        cv2.rectangle(image, (cx - 5, cy - 5), (cx + 5, cy + 5), (0, 128, 255), -1)
+        new_center_point = [cx, cy]
+        should_add = True
+        for center_point in center_points:
+          dist = self.calc_dist(new_center_point, center_point)
+          if dist < 15:
+            should_add = False
 
-        id = 'task_' + IdGenerator.next()
-        x = x.item()
-        y = y.item()
-        rectangles[id] = {'type': 'bpmn:Task', 'x': x, 'y': y, 'width': w, 'height': h}
+        if should_add:
+          center_points.append([cx, cy])
+          id = 'task_' + IdGenerator.next()
+          x = x.item()
+          y = y.item()
+          rectangles[id] = {'type': 'bpmn:Task', 'x': x, 'y': y, 'width': w, 'height': h}
     return rectangles
 
   def detect_seqflows(self, original_image, elems):

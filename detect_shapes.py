@@ -16,7 +16,7 @@ output_filename = pkg_resources.resource_filename('resources', 'output.png')
 
 # image_filename = pkg_resources.resource_filename('resources', 'shapes_and_colors.png')
 # image_filename = pkg_resources.resource_filename('resources', 'test.png')
-image_filename = pkg_resources.resource_filename('resources', 'foo.png')
+# image_filename = pkg_resources.resource_filename('resources', 'foo.png')
 
 # To execute the script, do:
 
