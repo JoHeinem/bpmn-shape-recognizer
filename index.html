@@ -61,6 +61,7 @@
         evt.preventDefault();
         ctx.moveTo(evt.clientX, evt.clientY);
       }
+      move(evt);
     }
     canvas.addEventListener('mousedown', start);
     canvas.addEventListener('touchstart', start);
