@@ -7,6 +7,10 @@
     background-color: blue;
   }
 
+  img {
+    height: 32px;
+  }
+
   #erasePreview {
     position: absolute;
     width: 30px;
@@ -21,14 +25,14 @@
   <canvas style="height: 50vh; width: 100vw; background-color: lightgray;"></canvas>
   <div id="erasePreview"></div>
   <div style="position: absolute; top: 0; right: 0;">
-    <button id="undo">◀</button>
-    <button id="redo">▶</button>
-    <button id="erase">🔪</button>
-    <button id="paint" active="true">✏</button>
+    <button id="undo"><img src="frontend/rev.png" /></button>
+    <button id="redo"><img src="frontend/fwd.png" /></button>
+    <button id="erase"><img src="frontend/knife.png" /></button>
+    <button id="paint" active="true"><img src="frontend/pen.png" /></button>
   </div>
   <div id="bpmnjsdiv" style="height: calc(50vh - 3px); width: 100vw; border-top: 3px solid black;"></div>
   <div style="position: absolute; top: 50vh; height: 50vh; width: 100vw;"></div>
-  <button id="clear" style="background-color: gray; width: 50px; height: 20px; position: absolute; top: 0; font-size: 11px;">🚮</button>
+  <button id="clear" style="position: absolute; top: 0;"><img src="frontend/bin.png" /></button>
   <script src="frontend/bpmn-viewer.js"></script>
   <script>
     const canvas = document.querySelector('canvas');
