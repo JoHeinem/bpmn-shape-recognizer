@@ -3,9 +3,9 @@
     font-size: 3em;
   }
 
-  button[active="true"] {
-    background-color: blue;
-  }
+  <!--button[active="true"] {-->
+    <!--background-color: white;-->
+  <!--}-->
 
   img {
     height: 32px;
@@ -25,14 +25,14 @@
   <canvas style="height: 50vh; width: 100vw; background-color: lightgray;"></canvas>
   <div id="erasePreview"></div>
   <div style="position: absolute; top: 0; right: 0;">
-    <button id="undo"><img src="frontend/rev.png" /></button>
-    <button id="redo"><img src="frontend/fwd.png" /></button>
-    <button id="erase"><img src="frontend/knife.png" /></button>
-    <button id="paint" active="true"><img src="frontend/pen.png" /></button>
+    <button id="undo"><img src="https://image.flaticon.com/icons/svg/34/34295.svg" /></button>
+    <button id="redo"><img src="https://image.flaticon.com/icons/svg/34/34096.svg" /></button>
+    <button id="erase"><img src="https://image.flaticon.com/icons/svg/143/143810.svg" /></button>
+    <button id="paint" active="true"><img src="https://image.flaticon.com/icons/svg/143/143800.svg" /></button>
   </div>
   <div id="bpmnjsdiv" style="height: calc(50vh - 3px); width: 100vw; border-top: 3px solid black;"></div>
   <div style="position: absolute; top: 50vh; height: 50vh; width: 100vw;"></div>
-  <button id="clear" style="position: absolute; top: 0;"><img src="frontend/bin.png" /></button>
+  <button id="clear" style="position: absolute; top: 0;"><img src="https://image.flaticon.com/icons/svg/230/230366.svg" /></button>
   <script src="frontend/bpmn-viewer.js"></script>
   <script>
     const canvas = document.querySelector('canvas');

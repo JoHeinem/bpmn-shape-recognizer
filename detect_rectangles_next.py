@@ -12,7 +12,7 @@ import math
 image_filename = pkg_resources.resource_filename('resources', 'hand_drawn_bpmn_shapes.png')
 # image_filename = pkg_resources.resource_filename('resources', 'simple_draw.png')
 # image_filename = pkg_resources.resource_filename('resources', 'test.png')
-image_filename = pkg_resources.resource_filename('resources', 'foo.png')
+# image_filename = pkg_resources.resource_filename('resources', 'foo.png')
 # image_filename = pkg_resources.resource_filename('resources', 'foo2.png')
 # image_filename = pkg_resources.resource_filename('resources', 'foo3.png')
 # image_filename = pkg_resources.resource_filename('resources', 'foo4.png')
@@ -41,6 +41,7 @@ result = np.array([[corner_indexes[0][0], corner_indexes[1][0]]])
 for ith_corner in range(len(corner_indexes[0])):
     p1 = np.array([corner_indexes[0][ith_corner], corner_indexes[1][ith_corner]])
     should_add = True
+    # TODO: 
     if gray[p1[0], p1[1]] == 255:
         should_add = False
     else:
@@ -73,9 +74,15 @@ for ith_corner in range(len(corner_indexes[0])):
 #             cv2.line(image, (corner[1], corner[0]), (point[1], point[0]), (0,0,0), lineThickness)
 #             break
 
-result_copy = []
+diamond_corners = []
 for r in result:
-    result_copy.append(r)
+    diamond_corners.append(r)
+diamond_corners = np.array(diamond_corners)
+
+coners_copy = []
+for r in result:
+    coners_copy.append(r)
+coners_copy = np.array(coners_copy)
 
 while(np.size(result) != 0):
     upper_left_corner_idx = np.argmin(np.sum(result, axis=1))
@@ -180,6 +187,108 @@ while(np.size(result) != 0):
     to_choose = [x for x in range(result.shape[0]) if x not in idx_to_remove]
     result = result[to_choose, :]
 
+while(np.size(diamond_corners) != 0):
+    top_idx = np.argmin(diamond_corners, axis=0)[0]
+    top_corner = diamond_corners[top_idx]
+
+    # the corner point is not directly on the edge
+    if gray[top_corner[0]+1, top_corner[1]] != 0:
+        top_corner = [top_corner[0]+3, top_corner[1]]
+
+    idx_to_remove = [top_idx]
+
+    can_continue = True
+    next_point = top_corner
+    max_left = 20
+    while can_continue:
+        left_down = gray[next_point[0]+1, next_point[1]-1]
+        down = gray[next_point[0]+1, next_point[1]]
+        left = gray[next_point[0], next_point[1]-1]
+        if left_down == 0:
+            next_point = [next_point[0]+1, next_point[1]-1]
+        elif down == 0:
+            next_point = [next_point[0]+1, next_point[1]]
+        elif left == 0 and max_left>0:
+            max_left -= 1
+            next_point = [next_point[0], next_point[1]-1]
+        else:
+          can_continue = False
+
+    # TODO: calc dist
+    can_continue = True
+    left_corner = next_point
+    max_down = 20
+    max_up = 10
+    while can_continue:
+        down = gray[next_point[0]+1, next_point[1]]
+        right = gray[next_point[0], next_point[1]+1]
+        right_down = gray[next_point[0]+1, next_point[1]+1]
+        right_up = gray[next_point[0]-1, next_point[1]+1]
+        if right_down == 0:
+            next_point = [next_point[0]+1, next_point[1]+1]
+        elif right == 0:
+            next_point = [next_point[0], next_point[1]+1]
+        elif down == 0 and max_down>0:
+            max_down -= 1
+            next_point = [next_point[0]+1, next_point[1]]
+        elif right_up == 0 and max_up>0:
+            max_up -= 1
+            next_point = [next_point[0]-1, next_point[1]+1]
+        else:
+          can_continue = False
+    # TODO: calc dist
+    can_continue = True
+    bottom_corner = next_point
+    max_right = 20
+    while can_continue:
+        right = gray[next_point[0], next_point[1]+1]
+        up = gray[next_point[0]-1, next_point[1]]
+        right_up = gray[next_point[0]-1, next_point[1]+1]
+        if right_up == 0:
+            next_point = [next_point[0]-1, next_point[1]+1]
+        elif up == 0:
+            next_point = [next_point[0]-1, next_point[1]]
+        elif right == 0 and max_right>0:
+            max_right -= 1
+            next_point = [next_point[0], next_point[1]+1]
+        else:
+          can_continue = False
+
+    can_continue = True
+    right_corner = next_point
+    max_up = 20
+    max_down = 10
+    while can_continue:
+        left_up = gray[next_point[0]-1, next_point[1]-1]
+        left = gray[next_point[0], next_point[1]-1]
+        up = gray[next_point[0]-1, next_point[1]]
+        left_down = gray[next_point[0]+1, next_point[1]-1]
+        if left_up == 0:
+            next_point = [next_point[0]-1, next_point[1]-1]
+        elif left == 0:
+            next_point = [next_point[0], next_point[1]-1]
+        elif up == 0 and max_up >0:
+            max_up -= 1
+            next_point = [next_point[0]-1, next_point[1]]
+        elif left_down == 0 and max_down>0:
+            max_down -= 1
+            next_point = [next_point[0]+1, next_point[1]-1]
+        else:
+          can_continue = False
+
+    dist = calc_dist(top_corner, next_point)
+    dist_left = calc_dist(top_corner, left_corner)
+    dist_bottom = calc_dist(bottom_corner, left_corner)
+    dist_right = calc_dist(bottom_corner, right_corner)
+    if dist < 50 and dist_left > 40 and dist_bottom > 40 and dist_right > 40:
+        x = top_corner[0]
+        y = left_corner[1]
+        w = right_corner[1] - y
+        h = bottom_corner[0] - x
+        cv2.rectangle(image, (y , x), (y+w, x+h ), (0, 255, 0), 3)
+    to_choose = [x for x in range(diamond_corners.shape[0]) if x not in idx_to_remove]
+    diamond_corners = diamond_corners[to_choose, :]
+
 
 
 
@@ -189,7 +298,7 @@ while(np.size(result) != 0):
 # if not found remove current corner point
 # rectanlges =
 # MAX_DIST = 20
-# while(np.size(result) != 0):
+# while(np.size(result) != 0):open_rectangle
 #     upper_left_corner_idx = np.argmin(np.sum(result, axis=1))
 #     upper_left_corner_point = result[upper_left_corner_idx]
 #     possible_lower_left_corner_idx = []
@@ -236,7 +345,7 @@ while(np.size(result) != 0):
 # Threshold for an optimal value, it may vary depending on the image.
 # image[dst>0.01*dst.max()]=[0,0,255]
 
-for r in result_copy:
+for r in coners_copy:
     image[r[0], r[1]] = [0,0,255]
 
 cv2.imshow('dst',image)

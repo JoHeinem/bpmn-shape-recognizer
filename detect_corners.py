@@ -11,8 +11,9 @@ import numpy as np
 image_filename = pkg_resources.resource_filename('resources', 'hand_drawn_bpmn_shapes.png')
 # image_filename = pkg_resources.resource_filename('resources', 'simple_draw.png')
 # image_filename = pkg_resources.resource_filename('resources', 'test.png')
-# image_filename = pkg_resources.resource_filename('resources', 'foo.png')
+image_filename = pkg_resources.resource_filename('resources', 'foo2.png')
 # image_filename = pkg_resources.resource_filename('resources', 'open_rectangle.png')
+# image_filename = pkg_resources.resource_filename('resources', 'original.png')
 
 
 
@@ -20,7 +21,7 @@ image_filename = pkg_resources.resource_filename('resources', 'hand_drawn_bpmn_s
 image = cv2.imread(image_filename)
 # ratio = image.shape[0] / 800.0
 # image = imutils.resize(image, height = 800)
-gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 gray = np.float32(gray)
 dst = cv2.cornerHarris(gray,2,5,0.04)

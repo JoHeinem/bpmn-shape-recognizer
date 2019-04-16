@@ -1,18 +1,15 @@
+import base64
 import http.server
 import json
 import socketserver
+import threading
 from http.server import SimpleHTTPRequestHandler
-from os import curdir
-from os.path import join as pjoin
 
 import cv2
 import numpy
 import pkg_resources
 
-import base64
-
 from backend.pyimagesearch.shapedetector import ShapeDetector
-from detect_shapes import detect_shapes
 
 INDEXFILE = pkg_resources.resource_filename(__name__, '../index.html')
 BPMN_VIEWER = pkg_resources.resource_filename(__name__, '../frontend/bpmn-viewer.js')
@@ -20,7 +17,7 @@ BPMN_VIEWER = pkg_resources.resource_filename(__name__, '../frontend/bpmn-viewer
 PORT = 1337
 
 Handler = http.server.SimpleHTTPRequestHandler
-
+lock = threading.Lock()
 
 class StoreHandler(SimpleHTTPRequestHandler):
 
@@ -38,21 +35,23 @@ class StoreHandler(SimpleHTTPRequestHandler):
 
   def do_GET(self):
     if self.path == '/frontend/bpmn-viewer.js':
-      self.send_response(200)
-      self.send_header('Content-Type', 'text/html')
-      self.end_headers()
-      with open(BPMN_VIEWER, 'rb') as fin:
-        self.copyfile(fin, self.wfile)
+      with lock:
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/javascript')
+        self.end_headers()
+        with open(BPMN_VIEWER, 'rb') as fin:
+          self.copyfile(fin, self.wfile)
     else:
-      # send index.html, but don't redirect
-      self.send_response(200)
-      self.send_header('Content-Type', 'text/html')
-      self.end_headers()
-      with open(INDEXFILE, 'rb') as fin:
-        self.copyfile(fin, self.wfile)
+      with lock:
+        # send index.html, but don't redirect
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html')
+        self.end_headers()
+        with open(INDEXFILE, 'rb') as fin:
+          self.copyfile(fin, self.wfile)
 
   def do_POST(self):
-    print('foo')
+    print('Retrieved a request to analyze a handdrawn bpmn image')
     if self.path == '/api/image-to-bpmn':
       length = self.headers['content-length']
       data = self.rfile.read(int(length))

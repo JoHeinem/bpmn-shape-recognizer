@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 import pkg_resources
 
 image_filename = pkg_resources.resource_filename('resources', 'hand_drawn_bpmn_shapes.png')
-image_filename = pkg_resources.resource_filename('resources', 'hand_drawn_bpmn_shapes_on_whiteboard.jpg')
+# image_filename = pkg_resources.resource_filename('resources', 'hand_drawn_bpmn_shapes_on_whiteboard.jpg')
 
 
 img = cv2.imread(image_filename,0)
